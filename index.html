@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ff7ab8">
+  <title>Fruit Punch</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- always-on corner buttons -->
+  <div id="corner">
+    <button id="btnPause" class="round hidden" aria-label="Pause">⏸</button>
+    <button id="btnMute" class="round" aria-label="Sound on/off">🔊</button>
+  </div>
+
+  <!-- Title -->
+  <section id="titleScreen" class="screen">
+    <div class="panel title-panel">
+      <h1 class="logo"><span class="w1">FRUIT</span> <span class="w2">PUNCH!</span></h1>
+      <p class="tag">Those cheeky fruit are ready to rumble... in their underpants!</p>
+      <div class="buttons">
+        <button id="btnPlay" class="big go">🥊 PLAY</button>
+        <button id="btnContinue" class="big hidden">▶ Continue</button>
+        <button id="btnLevels" class="mid">🗺 Levels</button>
+        <button id="btnHelp" class="mid">❓ How to play</button>
+      </div>
+      <div class="row small">
+        <span class="high">🏆 High score: <b id="titleHigh">0</b></span>
+        <button id="btnMusic" class="tiny">🎵 Music: ON</button>
+        <button id="btnReset" class="tiny">Reset save</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- How to play -->
+  <section id="helpScreen" class="screen hidden">
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="help">
+        <li><span class="ico">👆</span><div><b>TAP</b> a fruit to punch it.</div></li>
+        <li><span class="ico">✊</span><div><b>HOLD</b> then let go for a <b>POWER PUNCH</b> &mdash; it smashes every fruit nearby! Hold longer for a bigger blast.</div></li>
+        <li><span class="ico">🌳</span><div>Fruit hide behind things and pop up to tease you. Punch them while they peek!</div></li>
+        <li><span class="ico">⚡</span><div>Punch fruit quickly in a row for a <b>COMBO</b> &mdash; up to x5 points!</div></li>
+        <li><span class="ico">❤️</span><div>Big fruit like pineapples and watermelons need more than one hit.</div></li>
+        <li><span class="ico">⏱</span><div>Punch enough fruit before the timer runs out to reach the next level.</div></li>
+      </ul>
+      <button id="btnHelpBack" class="mid">◀ Back</button>
+    </div>
+  </section>
+
+  <!-- Level select -->
+  <section id="levelSelect" class="screen hidden">
+    <div class="panel wide">
+      <h2>Pick a level</h2>
+      <div id="levelGrid"></div>
+      <button id="btnLevelsBack" class="mid">◀ Back</button>
+    </div>
+  </section>
+
+  <!-- Level intro -->
+  <section id="introScreen" class="screen hidden">
+    <div class="panel intro">
+      <div id="introLevel" class="lvlnum">LEVEL 1</div>
+      <h2 id="introName">Sunny Meadow</h2>
+      <p id="introGoal">Punch 8 fruit!</p>
+      <p id="introNew" class="new"></p>
+      <p class="hint">Tap = punch &nbsp;·&nbsp; Hold = POWER punch</p>
+      <button id="btnGo" class="big go">FIGHT! 🥊</button>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="pauseScreen" class="screen hidden">
+    <div class="panel">
+      <h2>Paused</h2>
+      <p>The fruit are waiting... and wiggling.</p>
+      <div class="buttons">
+        <button id="btnResume" class="big go">▶ Resume</button>
+        <button id="btnQuit" class="mid">🏠 Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Level complete -->
+  <section id="completeScreen" class="screen hidden">
+    <div class="panel">
+      <h2 id="completeTitle">KNOCKOUT!</h2>
+      <div id="completeStars" class="stars"><span>★</span><span>★</span><span>★</span></div>
+      <div id="completeStats" class="stats"></div>
+      <div class="buttons">
+        <button id="btnNext" class="big go">Next level ▶</button>
+        <button id="btnCompleteMenu" class="mid">🏠 Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Time up -->
+  <section id="timeupScreen" class="screen hidden">
+    <div class="panel">
+      <h2 class="bad">TIME'S UP!</h2>
+      <p id="timeupMsg">The fruit are laughing at you!</p>
+      <p id="timeupStats" class="stat-line"></p>
+      <div class="buttons">
+        <button id="btnRetry" class="big go">↻ Try again</button>
+        <button id="btnTimeupMenu" class="mid">🏠 Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/fruitart.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
