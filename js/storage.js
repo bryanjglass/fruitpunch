@@ -8,6 +8,7 @@
     totalKOs: 0,
     muted: false,
     music: true,
+    weapon: 'gloves', // last chosen weapon
   };
 
   const Store = {

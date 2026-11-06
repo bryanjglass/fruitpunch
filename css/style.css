@@ -204,6 +204,7 @@ button:hover { filter: brightness(1.07); }
   transform: rotate(-3deg);
   margin-bottom: 6px;
 }
+.panel.intro { max-width: 640px; }
 .intro .new { color: #b3123a; font-size: 18px; min-height: 0; }
 .intro .new:empty { display: none; }
 .hint { font-size: 17px; color: #7a5a40; }
@@ -221,7 +222,63 @@ button:hover { filter: brightness(1.07); }
 .stats .newhigh { justify-content: center; color: #ff7a00; font-size: 24px; border: none; animation: pulse 0.8s infinite; }
 .stat-line { font-size: 24px; color: #ff3d6b; }
 
+.weapon-pick {
+  margin: 10px 0 12px;
+  padding: 10px;
+  background: #fff0d6;
+  border: 3px dashed #e8b980;
+  border-radius: 18px;
+}
+.wp-label { font-size: 20px; color: #ff3d6b; margin-bottom: 6px; }
+#weaponPicker { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.wpn {
+  width: 78px;
+  padding: 6px 2px 4px;
+  border: 3px solid #2b1a10;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 0 #2b1a10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #2b1a10;
+}
+.wpn small { font-size: 11px; line-height: 1.05; min-height: 2.1em; display: flex; align-items: center; }
+.wpn.sel { background: #5fe05a; transform: translateY(-3px) scale(1.06); box-shadow: 0 7px 0 #2b1a10; }
+.wpn.locked { background: #d9d0c3; cursor: not-allowed; opacity: 0.8; }
+#weaponInfo { margin-top: 10px; }
+#weaponInfo b { font-weight: normal; font-size: 22px; }
+#weaponInfo p { margin: 2px 0 6px; font-size: 15px; font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; }
+.pips { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-size: 15px; }
+.pips i { font-style: normal; color: #ff3d6b; letter-spacing: 1px; margin-left: 4px; }
+.pips u { text-decoration: none; color: #e6d6bf; }
+#weaponNext { font-size: 14px; color: #7a5a40; margin-top: 6px; }
+.newweapon {
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 10px;
+  padding: 8px !important;
+  background: #fff0d6;
+  border: 3px solid #ffb000 !important;
+  border-radius: 16px;
+  animation: popin 0.5s cubic-bezier(.2,1.6,.4,1) 1.6s both;
+}
+.newweapon em { font-style: normal; color: #ff7a00; font-size: 20px; }
+.newweapon b { font-size: 26px; color: #2b1a10 !important; }
+.newweapon small { font-size: 14px; font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; }
+
 @media (max-height: 520px) {
+  .weapon-pick { margin: 4px 0; padding: 4px 6px; }
+  .wp-label, .intro .hint, #weaponNext { display: none; }
+  .intro .lvlnum { font-size: 18px; margin-bottom: 0; }
+  .wpn small { font-size: 10px; min-height: 0; }
+  .wpn canvas { width: 34px !important; height: 34px !important; }
+  #weaponInfo { margin-top: 4px; }
+  #weaponInfo b { font-size: 17px; }
+  .wpn { width: 66px; }
+  #weaponInfo p { display: none; }
   .panel { padding: 12px 18px; }
   h2 { font-size: 32px; }
   button.big { font-size: 24px; padding: 6px 24px; min-width: 200px; }

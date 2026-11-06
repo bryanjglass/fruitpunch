@@ -51,6 +51,7 @@
         <li><span class="ico">🌳</span><div>Fruit hide behind things and pop up to tease you. Punch them while they peek!</div></li>
         <li><span class="ico">⚡</span><div>Punch fruit quickly in a row for a <b>COMBO</b> &mdash; up to x5 points!</div></li>
         <li><span class="ico">❤️</span><div>Big fruit like pineapples and watermelons need more than one hit.</div></li>
+        <li><span class="ico">🐔</span><div>Every 3 levels you unlock a new <b>WEAPON</b> &mdash; rubber chicken, squeaky hammer, water balloons and more! Pick one before each level.</div></li>
         <li><span class="ico">⏱</span><div>Punch enough fruit before the timer runs out to reach the next level.</div></li>
       </ul>
       <button id="btnHelpBack" class="mid">◀ Back</button>
@@ -74,6 +75,12 @@
       <p id="introGoal">Punch 8 fruit!</p>
       <p id="introNew" class="new"></p>
       <p class="hint">Tap = punch &nbsp;·&nbsp; Hold = POWER punch</p>
+      <div class="weapon-pick">
+        <div class="wp-label">Choose your weapon</div>
+        <div id="weaponPicker"></div>
+        <div id="weaponInfo"></div>
+        <div id="weaponNext"></div>
+      </div>
       <button id="btnGo" class="big go">FIGHT! 🥊</button>
     </div>
   </section>
@@ -120,6 +127,7 @@
   <script src="js/audio.js"></script>
   <script src="js/fruitart.js"></script>
   <script src="js/world.js"></script>
+  <script src="js/weapons.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
