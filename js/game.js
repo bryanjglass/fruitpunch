@@ -1,6 +1,6 @@
 // Fruit Punch - main game: levels, fruit AI, punching, scoring, UI flow.
 (function () {
-  const { TYPES, PANTS, BODY_Y, drawFruit, drawLonePants, drawGhost, star, glove } = FruitArt;
+  const { TYPES, PANTS, BODY_Y, drawFruit, drawLonePants, drawGhost, star } = FruitArt;
   const { ENVS, OBS, GUMDROP_COLORS } = World;
 
   const H = 720;
@@ -18,7 +18,6 @@
   const persp = (y) => 0.55 + 0.6 * (y - HZ) / (H - HZ);
 
   const TAP_TIME = 0.22;     // seconds: shorter press = quick punch
-  const FULL_CHARGE = 0.9;   // seconds of holding (after TAP_TIME) for a full power punch
 
   const TAUNTS = {
     nyah: { arms: 'ears', mouth: 'tongue', lines: ['Nyah nyah!', 'Bleeeh!', 'Can\'t catch me!', 'Nyah nyah nyah!'] },
@@ -34,8 +33,6 @@
   const ROAM_TAUNTS = ['nyah', 'butt', 'laugh', 'flex', 'beckon', 'dance', 'shadow', 'butt'];
   const MISS_LINES = ['Missed me!', 'Ha! Missed!', 'Whiff!', 'Nope!', 'Too slow!', 'Over here!'];
   const HIT_LINES = ['OOF!', 'OUCH!', 'Hey!', 'Not fair!', 'Ow ow ow!', 'My peel!'];
-  const POW_WORDS = ['POW!', 'BAM!', 'WHAM!', 'SMACK!', 'KAPOW!', 'BONK!', 'THWACK!', 'BOOM!'];
-  const POWER_WORDS = ['KA-BOOM!', 'SUPER POW!', 'MEGA PUNCH!', 'KA-POW!!'];
   const TYPE_UNLOCK = [
     ['apple', 'orange', 'banana'], // level 1
     ['strawberry'], ['lemon'], ['grape'], ['pineapple'], ['watermelon'],
@@ -143,6 +140,8 @@
       fruits: [],
       spawned: 0, kos: 0, combo: 0, comboT: 0, bestCombo: 0, powerKOs: 0,
       timeLeft: p.time,
+      weapon: 'gloves',
+      nextSwing: 0,
       spawnT: 0.8,
       started: false,
       bg: World.renderBackground(p.env, W, H, HZ, seed),
@@ -479,7 +478,7 @@
   }
 
   // ------------------------------------------------------------- death
-  function kill(f, power, dir) {
+  function kill(f, power, dir, deathPref) {
     const c = bodyCenter(f);
     if (f.spot && f.spot.occupant === f) f.spot.occupant = null;
     f.state = 'dying';
@@ -490,7 +489,7 @@
     f.pose = { arms: 'flail', mouth: 'dead', eyes: 'x', back: false };
     const behind = f.layer === 'behind';
     const types = behind ? ['launch', 'pop'] : power ? ['launch', 'pop', 'pop'] : ['squash', 'launch', 'pop'];
-    f.death = pick(types);
+    f.death = deathPref && !behind ? deathPref : pick(types);
     f.layer = 'front';
     f.sortY = f.spot ? f.spot.baseY + 1 : f.y;
     f.fixedSize = sizeOf(f);
@@ -594,6 +593,11 @@
         p.vy += 1400 * dt;
         p.x += p.vx * dt;
         p.y += p.vy * dt;
+      } else if (p.kind === 'feather') {
+        p.vy = Math.min(p.vy + 300 * dt, 60);
+        p.vx *= Math.pow(0.2, dt);
+        p.x += (p.vx + Math.sin(p.life * 5 + p.seed) * 40) * dt;
+        p.y += p.vy * dt;
       } else if (p.kind === 'pants') {
         p.vy += (p.vy < 0 ? 900 : 120) * dt;
         p.vy = Math.min(p.vy, 90);
@@ -665,7 +669,7 @@
           ctx.fillStyle = '#ff3d3d';
           star(ctx, 0, 0, s * 0.7, 12, 0.65);
           ctx.fill();
-          comicText(p.text, 0, 10, s * 0.38, '#fff');
+          comicText(p.text, 0, 10, Math.min(s * 0.38, (s * 3.4) / p.text.length), '#fff');
           break;
         }
         case 'ring':
@@ -683,16 +687,63 @@
         case 'ghost':
           drawGhost(ctx, p.x, p.y, p.size, time, Math.min(1, a * 1.5) * 0.85, p.color);
           break;
-        case 'glove': {
-          // the player's fist zooming into the screen
+        case 'weapon': {
           const k = 1 - a;
-          const s = p.size * (1.6 - k * 0.9);
           ctx.globalAlpha = Math.min(1, a * 2.5);
-          ctx.translate(p.x, p.y + 30 * (1 - k));
-          ctx.scale(s, s);
-          glove(ctx, 0, 0, -Math.PI / 2, p.color || '#e8202a');
+          if (p.key === 'hammer' || p.key === 'pan' || p.key === 'chicken') {
+            // swing down onto the target, pivoting around the handle
+            const sw = lerp(-1.3, 0.25, Math.min(1, k * 2.2));
+            ctx.translate(p.x + p.size * 0.1, p.y + p.size * 0.45);
+            ctx.rotate(sw);
+            ctx.translate(0, -p.size * 0.45);
+            ctx.scale(p.size * 1.25, p.size * 1.25);
+          } else {
+            // the fist / balloon zooming into the screen
+            const s = p.size * (1.6 - k * 0.9);
+            ctx.translate(p.x, p.y + 30 * (1 - k));
+            ctx.scale(s, s);
+          }
+          Weapons.draw(ctx, p.key, {});
           break;
         }
+        case 'bolt': {
+          ctx.globalAlpha = Math.min(1, a * 2);
+          ctx.strokeStyle = '#fff6a0';
+          ctx.shadowColor = '#ffe14d';
+          ctx.shadowBlur = 18;
+          ctx.lineJoin = 'round';
+          for (const [lw, col] of [[9, '#ffe14d'], [3.5, '#ffffff']]) {
+            ctx.lineWidth = lw;
+            ctx.strokeStyle = col;
+            ctx.beginPath();
+            const n = 7;
+            for (let i = 0; i <= n; i++) {
+              const t = i / n;
+              const j = i === 0 || i === n ? 0 : rnd(-18, 18);
+              const dx = p.x2 - p.x, dy = p.y2 - p.y, len = Math.hypot(dx, dy) || 1;
+              ctx.lineTo(p.x + dx * t - (dy / len) * j, p.y + dy * t + (dx / len) * j);
+            }
+            ctx.stroke();
+          }
+          break;
+        }
+        case 'feather':
+          ctx.globalAlpha = Math.min(1, a * 2);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(Math.sin(p.life * 7 + p.seed) * 0.8);
+          ctx.fillStyle = '#fffbe0';
+          ctx.strokeStyle = '#d8c070';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 4, 11, 0, 0, 7);
+          ctx.fill();
+          ctx.stroke();
+          break;
+        case 'flash':
+          ctx.globalAlpha = a * 0.6;
+          ctx.fillStyle = '#fffbe0';
+          ctx.fillRect(0, 0, W, H);
+          break;
       }
       ctx.restore();
     }
@@ -739,25 +790,84 @@
     return x > o.x - o.w * 0.44 && x < o.x + o.w * 0.44 && y > o.top + 6 && y < o.baseY;
   }
 
+  function weapon() {
+    return Weapons.get(L && L.weapon);
+  }
+
+  function weaponSound(wp) {
+    (Sfx[wp.sound] || Sfx.punch)();
+  }
+
+  function weaponFx(wp, x, y, big) {
+    if (wp.key === 'balloon') juice(x, y, '#6ad1ff', big ? 40 : 18, big ? 1.4 : 0.8);
+    if (wp.key === 'chicken') {
+      for (let i = 0; i < (big ? 14 : 6); i++) {
+        particles.push({ kind: 'feather', x, y, vx: rnd(-260, 260), vy: rnd(-380, -80), life: rnd(1, 1.6), max: 1.6, seed: rnd(0, 10) });
+      }
+    }
+    if (wp.key === 'pan') particles.push({ kind: 'ring', x, y, r: 10, maxR: big ? 160 : 70, life: 0.3, max: 0.3, color: '#fff' });
+  }
+
+  // Thunder Glove: the zap jumps from fruit to fruit
+  function chainZap(from, jumps, wp) {
+    const hitSet = new Set([from]);
+    let cur = bodyCenter(from);
+    for (let i = 0; i < jumps; i++) {
+      let best = null, bd = 320;
+      for (const f of L.fruits) {
+        if (hitSet.has(f) || !fruitHittable(f)) continue;
+        const c = bodyCenter(f);
+        const d = Math.hypot(c.x - cur.x, c.y - cur.y);
+        if (d < bd) { bd = d; best = f; }
+      }
+      if (!best) break;
+      const c = bodyCenter(best);
+      particles.push({ kind: 'bolt', x: cur.x, y: cur.y, x2: c.x, y2: c.y, life: 0.3, max: 0.3 });
+      hitSet.add(best);
+      damage(best, wp.tap.dmg, false, cur.x, wp);
+      cur = c;
+    }
+    if (hitSet.size > 1) textPop(cur.x, cur.y - 70, 'CHAIN x' + hitSet.size + '!', '#fff6a0', 28);
+  }
+
   function punch(x, y, charge) {
     if (mode !== 'play' || !L.started) return;
-    particles.push({ kind: 'glove', x, y, life: 0.22, max: 0.22, size: 70 + charge * 40 });
+    const wp = weapon();
+    if (time < L.nextSwing) return; // still recovering from the last swing
+    L.nextSwing = time + wp.tap.cooldown * (charge > 0 ? 1.5 : 1);
+    particles.push({ kind: 'weapon', key: wp.key, x, y, life: 0.25, max: 0.25, size: 70 + charge * 40 });
     if (charge <= 0) {
+      const t = wp.tap;
+      if (t.area) {
+        // splash weapons hit every fruit near the impact, cover or not
+        weaponSound(wp);
+        weaponFx(wp, x, y, false);
+        const hit = L.fruits.filter((f) => fruitHittable(f) && hitTestFruit(f, x, y, t.area));
+        if (hit.length) {
+          burst(x, y, pick(wp.words), false);
+          for (const f of hit) damage(f, t.dmg, false, x, wp);
+          shake = Math.max(shake, 6);
+          if (hit.length >= 2) textPop(x, y - 80, hit.length + ' FRUIT SPLASH!', '#7fffd4', 30);
+        } else missTaunt(x, y);
+        return;
+      }
       const items = renderList();
       let target = null;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
         if (it.f) {
-          if (fruitHittable(it.f) && hitTestFruit(it.f, x, y, 18)) { target = it; break; }
+          if (fruitHittable(it.f) && hitTestFruit(it.f, x, y, t.pad)) { target = it; break; }
         } else if (hitTestObstacle(it.o, x, y)) { target = it; break; }
       }
       if (target && target.f) {
-        Sfx.punch();
-        burst(x, y, pick(POW_WORDS), false);
-        damage(target.f, 1, false, x);
-        shake = Math.max(shake, 6);
+        weaponSound(wp);
+        weaponFx(wp, x, y, false);
+        burst(x, y, pick(wp.words), false);
+        damage(target.f, t.dmg, false, x, wp);
+        shake = Math.max(shake, 6 + t.dmg * 2);
+        if (t.chain) chainZap(target.f, t.chain, wp);
       } else if (target && target.o) {
-        Sfx.bonk();
+        if (wp.key === 'pan') Sfx.clang(); else Sfx.bonk();
         target.o.wobble = 1;
         textPop(x, y, 'BONK!', '#fff', 28);
         missTaunt(x, y);
@@ -766,45 +876,62 @@
         missTaunt(x, y);
       }
     } else {
-      const radius = 80 + charge * 110;
-      const dmg = 2 + Math.round(charge * 2);
+      const P = wp.power;
+      const dmg = Math.round(lerp(P.dmgMin, P.dmgMax, charge));
       Sfx.power();
+      weaponSound(wp);
+      weaponFx(wp, x, y, true);
       shake = 14 + charge * 12;
-      burst(x, y, pick(POWER_WORDS), true);
-      particles.push({ kind: 'ring', x, y, r: 10, maxR: radius * 1.1, life: 0.45, max: 0.45, color: '#fff' });
-      particles.push({ kind: 'ring', x, y, r: 10, maxR: radius * 0.7, life: 0.35, max: 0.35, color: '#ffe14d' });
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        particles.push({ kind: 'star', x, y, vx: Math.cos(a) * 400, vy: Math.sin(a) * 300, life: 0.5, max: 0.5, size: 12, rot: 0, vr: 8, color: '#ffe14d' });
-      }
+      burst(x, y, pick(wp.powerWords), true);
       let hits = 0;
-      for (const f of L.fruits.slice()) {
-        if (!fruitHittable(f)) continue;
-        const c = bodyCenter(f);
-        if (Math.hypot(c.x - x, (c.y - y) * 1.2) < radius + c.r) {
-          damage(f, dmg, true, x);
+      if (P.all) {
+        // lightning strikes every fruit on screen
+        particles.push({ kind: 'flash', life: 0.25, max: 0.25 });
+        for (const f of L.fruits.slice()) {
+          if (!fruitHittable(f)) continue;
+          const c = bodyCenter(f);
+          particles.push({ kind: 'bolt', x: c.x + rnd(-60, 60), y: -10, x2: c.x, y2: c.y, life: 0.4, max: 0.4 });
+          damage(f, dmg, true, c.x - 1, wp);
           hits++;
         }
-      }
-      for (const o of L.obstacles) {
-        if (Math.hypot(o.x - x, (o.baseY - o.h / 2) - y) < radius + o.w / 2) o.wobble = 1;
+        for (const o of L.obstacles) o.wobble = 0.6;
+      } else {
+        const radius = lerp(P.minR, P.maxR, charge);
+        particles.push({ kind: 'ring', x, y, r: 10, maxR: radius * 1.1, life: 0.45, max: 0.45, color: '#fff' });
+        particles.push({ kind: 'ring', x, y, r: 10, maxR: radius * 0.7, life: 0.35, max: 0.35, color: '#ffe14d' });
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2;
+          particles.push({ kind: 'star', x, y, vx: Math.cos(a) * 400, vy: Math.sin(a) * 300, life: 0.5, max: 0.5, size: 12, rot: 0, vr: 8, color: '#ffe14d' });
+        }
+        for (const f of L.fruits.slice()) {
+          if (!fruitHittable(f)) continue;
+          const c = bodyCenter(f);
+          if (Math.hypot(c.x - x, (c.y - y) * 1.2) < radius + c.r) {
+            damage(f, dmg, true, x, wp);
+            hits++;
+          }
+        }
+        for (const o of L.obstacles) {
+          if (Math.hypot(o.x - x, (o.baseY - o.h / 2) - y) < radius + o.w / 2) o.wobble = 1;
+        }
       }
       if (hits >= 2) textPop(x, y - 90, hits + ' FRUIT SMASH!', '#7fffd4', 34);
       if (!hits) missTaunt(x, y);
     }
   }
 
-  function damage(f, dmg, power, fromX) {
+  function damage(f, dmg, power, fromX, wp) {
+    if (f.state === 'dying') return;
     f.hp -= dmg;
     const dir = f.x >= fromX ? 1 : -1;
     if (f.hp <= 0) {
-      kill(f, power, dir);
+      kill(f, power, dir, wp && wp.death);
     } else {
       f.flash = 1;
       Sfx.oof(f.type.pitch);
       endTaunt(f);
       f.state = 'stunned';
-      f.timer = 0.45;
+      f.timer = 0.45 * (wp ? wp.stun : 1);
       f.vx = dir * 260;
       f.jump = null;
       if (f.layer === 'front' && f.spot && f.spot.occupant === f) { f.spot.occupant = null; f.spot = null; }
@@ -867,7 +994,7 @@
     Sfx.chargeStop();
     if (mode !== 'play') return;
     const held = pointer.downT;
-    const charge = held < TAP_TIME ? 0 : clamp((held - TAP_TIME) / FULL_CHARGE, 0.05, 1);
+    const charge = held < TAP_TIME ? 0 : clamp((held - TAP_TIME) / weapon().power.charge, 0.05, 1);
     punch(p.x, p.y, charge);
   }
   canvas.addEventListener('pointerdown', onDown);
@@ -925,8 +1052,45 @@
     const newbies = TYPE_UNLOCK[n - 1];
     $('introNew').textContent = newbies && n > 1 ? 'NEW: ' + newbies.map((k) => TYPES[k].name).join(', ') + ' (' + (TYPES[newbies[0]].hp > 1 ? 'tough! ' + TYPES[newbies[0]].hp + ' hits' : '+' + TYPES[newbies[0]].pts + ' pts') + ')' : '';
     if (p.hpBonus > 0) $('introNew').textContent += (newbies && n > 1 ? ' · ' : '') + 'Fruits are tougher now!';
+    const avail = Weapons.unlockedFor(Math.max(Store.data.unlocked, n));
+    if (!avail.some((w) => w.key === Store.data.weapon)) Store.data.weapon = 'gloves';
+    L.weapon = Store.data.weapon;
+    buildWeaponPicker();
     show('introScreen');
     Sfx.startMusic(p.env.music);
+  }
+
+  function buildWeaponPicker() {
+    const reached = Math.max(Store.data.unlocked, L ? L.n : 1);
+    const box = $('weaponPicker');
+    box.innerHTML = '';
+    for (const w of Weapons.list) {
+      const locked = w.unlockLevel > reached;
+      const b = document.createElement('button');
+      b.className = 'wpn' + (locked ? ' locked' : '') + (w.key === L.weapon ? ' sel' : '');
+      b.disabled = locked;
+      b.title = locked ? 'Unlocks at level ' + w.unlockLevel : w.name;
+      b.appendChild(Weapons.icon(w.key, 46, locked));
+      const lab = document.createElement('small');
+      lab.textContent = locked ? '🔒 Lvl ' + w.unlockLevel : w.name;
+      b.appendChild(lab);
+      b.addEventListener('click', () => {
+        Sfx.init();
+        weaponSound(w);
+        L.weapon = w.key;
+        Store.data.weapon = w.key;
+        Store.save();
+        buildWeaponPicker();
+      });
+      box.appendChild(b);
+    }
+    const w = Weapons.get(L.weapon);
+    const pips = (n) => '<i>' + '●'.repeat(n) + '<u>' + '●'.repeat(5 - n) + '</u></i>';
+    $('weaponInfo').innerHTML =
+      '<b>' + w.name + '</b><p>' + w.desc + '</p>' +
+      '<div class="pips"><span>Power ' + pips(w.stats.power) + '</span><span>Reach ' + pips(w.stats.reach) + '</span><span>Speed ' + pips(w.stats.speed) + '</span></div>';
+    const next = Weapons.list.find((x) => x.unlockLevel > reached);
+    $('weaponNext').textContent = next ? 'Next weapon unlocks at level ' + next.unlockLevel + '!' : 'You have unlocked every weapon!';
   }
 
   function beginPlay() {
@@ -965,7 +1129,10 @@
     const n = L.n;
     const prev = Store.data.stars[n] || 0;
     Store.data.stars[n] = Math.max(prev, stars);
+    const prevUnlocked = Store.data.unlocked;
     Store.data.unlocked = Math.max(Store.data.unlocked, n + 1);
+    const newWeapons = Weapons.list.filter((w) => w.unlockLevel > prevUnlocked && w.unlockLevel <= Store.data.unlocked);
+    if (newWeapons.length) Store.data.weapon = newWeapons[newWeapons.length - 1].key; // equip the shiny new toy
     const isHigh = score > Store.data.highScore;
     Store.data.highScore = Math.max(Store.data.highScore, score);
     Store.save();
@@ -977,7 +1144,10 @@
       '<div><span>Time bonus</span><b>+' + timeBonus + '</b></div>' +
       (powerBonus ? '<div><span>Power punch bonus</span><b>+' + powerBonus + '</b></div>' : '') +
       '<div class="total"><span>Score</span><b>' + score.toLocaleString() + '</b></div>' +
-      (isHigh ? '<div class="newhigh">★ NEW HIGH SCORE! ★</div>' : '');
+      (isHigh ? '<div class="newhigh">★ NEW HIGH SCORE! ★</div>' : '') +
+      newWeapons.map((w) => '<div class="newweapon" data-key="' + w.key + '"><em>🎁 NEW WEAPON!</em><b>' + w.name + '</b><small>' + w.desc + '</small></div>').join('');
+    for (const el of $('completeStats').querySelectorAll('.newweapon')) el.prepend(Weapons.icon(el.dataset.key, 64));
+    if (newWeapons.length) setTimeout(() => { if (mode === 'complete') Sfx.unlock(); }, 1700);
     const starEls = $('completeStars').children;
     for (let i = 0; i < 3; i++) {
       starEls[i].classList.remove('on', 'pop');
@@ -1274,6 +1444,11 @@
     ctx.font = '32px "Luckiest Guy", "Comic Sans MS", sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(score.toLocaleString(), 28, 56);
+    ctx.translate(214, 42);
+    ctx.scale(44, 44);
+    const hw = weapon();
+    if (hw.key !== 'gloves' && hw.key !== 'thunder') ctx.rotate(-0.35);
+    Weapons.draw(ctx, hw.key, { noGlow: true });
     ctx.restore();
 
     // level + timer
@@ -1335,8 +1510,9 @@
     if (mode !== 'play' || !pointer.inside) return;
     const x = pointer.x, y = pointer.y;
     if (pointer.down && pointer.downT > TAP_TIME * 0.6) {
-      const c = clamp((pointer.downT - TAP_TIME) / FULL_CHARGE, 0, 1);
-      const r = 80 + c * 110;
+      const wp = weapon();
+      const c = clamp((pointer.downT - TAP_TIME) / wp.power.charge, 0, 1);
+      const r = wp.power.all ? 70 + c * 40 : lerp(wp.power.minR, wp.power.maxR, c);
       ctx.save();
       ctx.strokeStyle = c >= 1 ? (Math.floor(time * 12) % 2 ? '#ffe14d' : '#ff3d3d') : 'rgba(255,255,255,0.85)';
       ctx.lineWidth = 4;
@@ -1356,16 +1532,19 @@
       const jitter = c * 3;
       ctx.translate(x + rnd(-jitter, jitter), y + rnd(-jitter, jitter));
       ctx.scale(70 + c * 30, 70 + c * 30);
-      glove(ctx, 0, 0, -Math.PI / 2, c >= 1 ? '#ff7a00' : '#e8202a');
+      if (wp.key !== 'gloves' && wp.key !== 'thunder') ctx.rotate(-0.35);
+      Weapons.draw(ctx, wp.key, { hot: c >= 1 });
       ctx.restore();
-      if (c >= 1) comicText('POWER!', x, y - 90, 26, '#ffe14d');
+      if (c >= 1) comicText(wp.power.all ? 'ZAP ALL!' : 'POWER!', x, y - 90, 26, '#ffe14d');
     } else if (!pointer.down && pointer.mouse) {
       // crosshair fist cursor for mouse users
+      const wp = weapon();
       ctx.save();
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = time < L.nextSwing ? 0.35 : 0.85; // dim while the weapon recovers
       ctx.translate(x, y);
       ctx.scale(42, 42);
-      glove(ctx, 0, 0, -Math.PI / 2, '#e8202a');
+      if (wp.key !== 'gloves' && wp.key !== 'thunder') ctx.rotate(-0.35);
+      Weapons.draw(ctx, wp.key, {});
       ctx.restore();
     }
   }
@@ -1519,5 +1698,5 @@
   requestAnimationFrame(frame);
 
   // expose a little for debugging / testing
-  window.FruitPunch = { get mode() { return mode; }, get level() { return L; }, get score() { return score; }, startLevel, beginPlay, punch, toWorld };
+  window.FruitPunch = { get mode() { return mode; }, get level() { return L; }, get score() { return score; }, startLevel, beginPlay, punch, toWorld, get weapon() { return weapon().key; } };
 })();

@@ -113,6 +113,52 @@
       tone({ type: 'sine', f0: 130, f1: 28, dur: 0.55, vol: 1 });
       tone({ type: 'square', f0: 90, f1: 35, dur: 0.3, vol: 0.12 });
     },
+    // ---- weapon hit sounds ----
+    squawk() {
+      if (!ok()) return;
+      const t = now();
+      tone({ type: 'sawtooth', f0: 900, f1: 1500, dur: 0.08, vol: 0.18, filter: 'bandpass', ff: 1800, q: 2 });
+      tone({ type: 'sawtooth', f0: 1500, f1: 600, dur: 0.22, vol: 0.18, t: t + 0.08, filter: 'bandpass', ff: 1600, q: 2, vib: 30, vibDepth: 120 });
+      tone({ type: 'sine', f0: 160, f1: 60, dur: 0.12, vol: 0.5 });
+    },
+    squeak() {
+      if (!ok()) return;
+      const t = now();
+      tone({ type: 'sine', f0: 140, f1: 45, dur: 0.2, vol: 0.9 });
+      tone({ type: 'square', f0: 1300, f1: 2100, dur: 0.1, vol: 0.08, t: t + 0.02 });
+      tone({ type: 'square', f0: 2100, f1: 1500, dur: 0.12, vol: 0.06, t: t + 0.12 });
+    },
+    splash() {
+      if (!ok()) return;
+      const t = now();
+      noise({ filter: 'highpass', f0: 800, f1: 3000, dur: 0.3, vol: 0.45 });
+      noise({ f0: 900, f1: 200, dur: 0.2, vol: 0.4 });
+      for (let i = 0; i < 6; i++) {
+        const f = 500 + Math.random() * 900;
+        tone({ type: 'sine', f0: f, f1: f * 1.8, dur: 0.05, vol: 0.12, t: t + 0.05 + i * 0.04 });
+      }
+    },
+    clang() {
+      if (!ok()) return;
+      [520, 1213, 1867, 2690].forEach((f, i) => tone({ type: 'sine', f0: f, dur: 0.7 - i * 0.12, vol: 0.22 - i * 0.04 }));
+      tone({ type: 'sine', f0: 150, f1: 50, dur: 0.15, vol: 0.7 });
+      noise({ filter: 'highpass', f0: 3000, dur: 0.06, vol: 0.3 });
+    },
+    zap() {
+      if (!ok()) return;
+      const t = now();
+      for (let i = 0; i < 5; i++) {
+        tone({ type: 'sawtooth', f0: 200 + Math.random() * 1400, dur: 0.035, vol: 0.12, t: t + i * 0.03 });
+      }
+      noise({ filter: 'bandpass', f0: 3000, f1: 800, dur: 0.25, vol: 0.35, q: 3 });
+      tone({ type: 'sine', f0: 110, f1: 40, dur: 0.2, vol: 0.6 });
+    },
+    unlock() {
+      if (!ok()) return;
+      const t = now();
+      [67, 72, 76, 79, 84].forEach((n, i) => tone({ type: 'triangle', f0: midi(n), dur: 0.18, vol: 0.18, t: t + i * 0.08 }));
+      tone({ type: 'sine', f0: midi(96), dur: 0.5, vol: 0.08, t: t + 0.4, vib: 8, vibDepth: 20 });
+    },
     whoosh() {
       if (!ok()) return;
       noise({ filter: 'bandpass', f0: 350, f1: 2600, dur: 0.18, vol: 0.35, q: 2, attack: 0.04 });
